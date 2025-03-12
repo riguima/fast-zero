@@ -21,6 +21,14 @@ def get_users():
     return {'users': database}
 
 
+@app.get('/users/{user_id}', response_model=UserDB)
+def get_user(user_id: int):
+    try:
+        return next(filter(lambda u: u.id == user_id, database))
+    except StopIteration:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='User not found')
+
+
 @app.post('/users', status_code=HTTPStatus.CREATED, response_model=UserDB)
 def create_user(user: UserSchema):
     user_with_id = UserDB(**user.model_dump(), id=len(database) + 1)
@@ -30,18 +38,22 @@ def create_user(user: UserSchema):
 
 @app.put('/users/{user_id}', response_model=UserDB)
 def update_user(user_id: int, user: UserSchema):
-    if user_id > len(database) or user_id < 1:
+    try:
+        user_found = next(filter(lambda u: u.id == user_id, database))
+    except StopIteration:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='User not found')
     user_with_id = UserDB(**user.model_dump(), id=user_id)
-    database[user_id - 1] = user_with_id
+    database[database.index(user_found)] = user_with_id
     return user_with_id
 
 
 @app.delete('/users/{user_id}', response_model=MessageSchema)
 def delete_user(user_id: int):
-    if user_id > len(database) or user_id < 1:
+    try:
+        user = next(filter(lambda u: u.id == user_id, database))
+    except StopIteration:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='User not found')
-    del database[user_id - 1]
+    del database[database.index(user)]
     return {'message': 'User deleted'}
 
 
