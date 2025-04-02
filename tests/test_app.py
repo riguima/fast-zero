@@ -85,9 +85,10 @@ def test_get_user_not_found(client):
     assert response.status_code == HTTPStatus.NOT_FOUND
 
 
-def test_update_user(client, user):
+def test_update_user(client, user, token):
     response = client.put(
-        '/users/1',
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'bob',
             'email': 'bob@example.com',
@@ -102,7 +103,7 @@ def test_update_user(client, user):
     }
 
 
-def test_update_user_with_conflit(client, user):
+def test_update_user_with_conflict(client, user, token):
     client.post(
         '/users',
         json={
@@ -113,6 +114,7 @@ def test_update_user_with_conflit(client, user):
     )
     response = client.put(
         f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'fausto',
             'email': 'bob@example.com',
@@ -123,26 +125,61 @@ def test_update_user_with_conflit(client, user):
     assert response.json() == {'detail': 'Username or Email already exists'}
 
 
-def test_update_user_not_found(client):
+def test_update_user_without_permissions(client, token):
     response = client.put(
         '/users/2',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'bob',
             'email': 'bob@example.com',
             'password': 'mynewpassword',
         },
     )
-    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.json() == {'detail': 'Not enough permissions'}
 
 
-def test_delete_user(client, user):
-    response = client.delete(f'/users/{user.id}')
+def test_delete_user(client, user, token):
+    response = client.delete(
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {'message': 'User deleted'}
     response = client.get('/users')
     assert response.json() == {'users': []}
 
 
-def test_delete_user_not_found(client):
-    response = client.delete('/users/2')
-    assert response.status_code == HTTPStatus.NOT_FOUND
+def test_delete_user_without_permissions(client, token):
+    response = client.delete('/users/2', headers={'Authorization': f'Bearer {token}'})
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.json() == {'detail': 'Not enough permissions'}
+
+
+def test_get_token(client, user):
+    response = client.post(
+        '/token',
+        data={'username': user.email, 'password': user.cleaned_password},
+    )
+    token = response.json()
+    assert response.status_code == HTTPStatus.OK
+    assert 'access_token' in token
+    assert 'token_type' in token
+
+
+def test_incorrect_email(client, user):
+    response = client.post(
+        '/token',
+        data={'username': 'invalido@gmail.com', 'password': user.cleaned_password},
+    )
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Incorrect email or password'}
+
+
+def test_incorrect_password(client, user):
+    response = client.post(
+        '/token',
+        data={'username': user.email, 'password': '12345'},
+    )
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Incorrect email or password'}
