@@ -1,18 +1,6 @@
 from http import HTTPStatus
 
-from src.fast_zero.schemas import UserPublicSchema
-
-
-def test_root_deve_retornar_ok_e_ola_mundo(client):
-    response = client.get('/')
-    assert response.status_code == HTTPStatus.OK
-    assert response.json() == {'message': 'Hello World'}
-
-
-def test_root_html_deve_retornar_ok_e_ola_mundo(client):
-    response = client.get('/html')
-    assert response.status_code == HTTPStatus.OK
-    assert response.text == '<h1>Hello World</h1>'
+from fast_zero import schemas
 
 
 def test_create_user(client):
@@ -65,7 +53,7 @@ def test_get_users(client):
 
 
 def test_get_users_with_user(client, user):
-    user_schema = UserPublicSchema.model_validate(user).model_dump()
+    user_schema = schemas.UserPublic.model_validate(user).model_dump()
     response = client.get('/users')
     assert response.json() == {'users': [user_schema]}
 
@@ -154,32 +142,3 @@ def test_delete_user_without_permissions(client, token):
     response = client.delete('/users/2', headers={'Authorization': f'Bearer {token}'})
     assert response.status_code == HTTPStatus.FORBIDDEN
     assert response.json() == {'detail': 'Not enough permissions'}
-
-
-def test_get_token(client, user):
-    response = client.post(
-        '/token',
-        data={'username': user.email, 'password': user.cleaned_password},
-    )
-    token = response.json()
-    assert response.status_code == HTTPStatus.OK
-    assert 'access_token' in token
-    assert 'token_type' in token
-
-
-def test_incorrect_email(client, user):
-    response = client.post(
-        '/token',
-        data={'username': 'invalido@gmail.com', 'password': user.cleaned_password},
-    )
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
-    assert response.json() == {'detail': 'Incorrect email or password'}
-
-
-def test_incorrect_password(client, user):
-    response = client.post(
-        '/token',
-        data={'username': user.email, 'password': '12345'},
-    )
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
-    assert response.json() == {'detail': 'Incorrect email or password'}
