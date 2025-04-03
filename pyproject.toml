@@ -28,6 +28,8 @@ ruff = "^0.9.9"
 taskipy = "^1.14.1"
 python-lsp-ruff = "^2.2.2"
 pytest-asyncio = "^0.26.0"
+factory-boy = "^3.3.3"
+freezegun = "^1.5.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
