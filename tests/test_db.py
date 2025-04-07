@@ -2,6 +2,7 @@ from dataclasses import asdict
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import DataError
 
 from fast_zero.models import Task, User
 
@@ -71,6 +72,5 @@ async def test_task_wrong_task_state(session, user):
         user_id=user.id,
     )
     session.add(task)
-    await session.commit()
-    with pytest.raises(LookupError):
-        await session.refresh(task)
+    with pytest.raises(DataError):
+        await session.commit()
