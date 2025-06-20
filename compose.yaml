@@ -15,7 +15,7 @@ services:
     entrypoint: ./entrypoint.sh
     build: .
     ports:
-      - "8000:8000"
+      - "8080:8080"
     depends_on:
       - fastzero_database
     environment:
